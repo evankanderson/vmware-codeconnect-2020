@@ -41,6 +41,17 @@
 			<version>1.51h</version>
 		</dependency>
 
+		<!-- <dependency>
+			<groupId>org.openapitools</groupId>
+			<artifactId>openapi-java-client</artifactId>
+			<version>1.1.0</version>
+		</dependency> -->
+
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>swagger-annotations</artifactId>
+			<version>1.5.21</version>
+		</dependency>
 
 	</dependencies>
 
@@ -49,6 +60,31 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>io.swagger</groupId>
+				<artifactId>swagger-codegen-maven-plugin</artifactId>
+				<version>2.2.3</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>swagger.json</inputSpec>
+							<language>java</language>
+							<library>resttemplate</library>
+							<apiPackage>com.majordemo.autogen.caption.api</apiPackage>
+							<modelPackage>com.majordemo.autogen.caption.model</modelPackage>
+							<invokerPackage>com.majordemo.autogen.caption.invoker</invokerPackage>
+
+							<configOptions>
+								
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

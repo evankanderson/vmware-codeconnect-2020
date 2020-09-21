@@ -1,7 +1,13 @@
 package com.majordemo.image_captioner;
 
+import com.majordemo.autogen.caption.api.ModelApi;
+import com.majordemo.autogen.caption.invoker.ApiClient;
+import com.majordemo.autogen.caption.model.ModelPredictResponse;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +27,9 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -30,6 +38,8 @@ import javax.imageio.ImageIO;
 @Configuration
 @RestController
 public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
+	@Autowired
+	private ModelApi modelApi;
 
 	public static void main(String[] args) {
 		SpringApplication.run(ImageCaptionerApplication.class, args);
@@ -42,15 +52,48 @@ public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
 		converters.add(imageConverter);
 	}
 
-	@PostMapping(value="/", produces=MediaType.IMAGE_JPEG_VALUE)
-	public @ResponseBody byte[] captionImage(@RequestBody byte[] imageBytes) throws IOException{
-	// We'd love to return ResponseEntity<BufferedImage>, but I can't figure out how to get the response to work.
+	@Bean
+	public ModelApi modelApi() {
+		return new ModelApi(apiClient());
+	}
+
+	@Bean
+	public ApiClient apiClient() {
+		String serviceHost = System.getenv("CAPTION_SERVICE");
+		if (serviceHost == null || serviceHost == "") {
+			serviceHost = "http://localhost:5000/"; // Default for development
+		}
+		return new ApiClient().setBasePath(serviceHost);
+	}
+
+	@PostMapping(value = "/", produces = MediaType.IMAGE_JPEG_VALUE)
+	public ResponseEntity<byte[]> captionImage(@RequestBody byte[] imageBytes) throws IOException {
+		// We'd love to return ResponseEntity<BufferedImage>, but I can't figure out how
+		// to get the response to work.
 		BufferedImage image = null;
 		image = ImageIO.read(new ByteArrayInputStream(imageBytes));
-		Graphics g = image.getGraphics();
-		var text = "TEST";
 
-		Font font = new Font("Arial", Font.BOLD, 18);
+		String text = "Captioning failed";
+		File toUpload = File.createTempFile("precaption", ".jpg");
+		try {
+			ImageIO.write(image, "jpg", toUpload);
+
+			System.out.println("Sending " + toUpload.getPath());
+
+			ModelPredictResponse captions = modelApi.predict(toUpload);
+			text = captions.getPredictions().get(0).getCaption();
+		} finally {
+			Files.delete(toUpload.toPath());
+		}
+
+		Graphics g = image.getGraphics();
+
+		Font baseFont = new Font("Arial", Font.BOLD, 10);
+		int tenPtWidth = g.getFontMetrics(baseFont).stringWidth(text);
+
+		int fontHeight = 10 * image.getWidth() / tenPtWidth - 1;
+
+		Font font = new Font("Arial", Font.BOLD, fontHeight);
 		g.setFont(font);
 		g.setColor(Color.WHITE);
 
@@ -66,12 +109,7 @@ public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
 		var ret = bao.toByteArray();
 
 		System.out.println("Writing image of " + ret.length + " bytes\n\n");
-		return ret;
-		/*
-		 * byte[] response = "Okay".getBytes(); return
-		 * ResponseEntity.ok().body(response);
-		 */
-		// return ResponseEntity.ok().body(image);
+		return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
 	}
 
 	@GetMapping("/hello")
