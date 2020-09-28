@@ -4,11 +4,13 @@ import com.majordemo.autogen.caption.api.ModelApi;
 import com.majordemo.autogen.caption.invoker.ApiClient;
 import com.majordemo.autogen.caption.model.ModelPredictResponse;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
@@ -16,6 +18,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,82 +41,93 @@ import javax.imageio.ImageIO;
 @Configuration
 @RestController
 public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
+	static final String RESPONSE_EVENT_TYPE = "com.majordemo.captioned-image";
+	static final String RESPONSE_EVENT_SOURCE = "max-image-captioner";
+
 	@Autowired
 	private ModelApi modelApi;
 
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 		SpringApplication.run(ImageCaptionerApplication.class, args);
 	}
 
 	@Override
-	public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
-		var imageConverter = new ByteArrayHttpMessageConverter();
+	public void configureMessageConverters(final List<HttpMessageConverter<?>> converters) {
+		final var imageConverter = new ByteArrayHttpMessageConverter();
 		imageConverter.setSupportedMediaTypes(List.of(MediaType.IMAGE_JPEG, MediaType.IMAGE_PNG));
 		converters.add(imageConverter);
 	}
 
 	@Bean
-	public ModelApi modelApi() {
-		return new ModelApi(apiClient());
+	public ModelApi modelApi(@Value("${CAPTION_SERVICE:http://localhost:5000}") final String serviceHost) {
+		System.out.println("Using caption service at " + serviceHost);
+		return new ModelApi(apiClient(serviceHost));
 	}
 
 	@Bean
-	public ApiClient apiClient() {
-		String serviceHost = System.getenv("CAPTION_SERVICE");
-		if (serviceHost == null || serviceHost == "") {
-			serviceHost = "http://localhost:5000/"; // Default for development
-		}
+	public ApiClient apiClient(final String serviceHost) {
+		/*
+		 * String serviceHost = System.getenv("CAPTION_SERVICE"); if (serviceHost ==
+		 * null || serviceHost == "") { serviceHost = "http://localhost:5000/"; //
+		 * Default for development }
+		 */
 		return new ApiClient().setBasePath(serviceHost);
 	}
 
 	@PostMapping(value = "/", produces = MediaType.IMAGE_JPEG_VALUE)
-	public ResponseEntity<byte[]> captionImage(@RequestBody byte[] imageBytes) throws IOException {
+	public ResponseEntity<byte[]> captionImage(@RequestHeader("ce-id") final String eventId,
+			@RequestBody final byte[] imageBytes) throws IOException {
 		// We'd love to return ResponseEntity<BufferedImage>, but I can't figure out how
 		// to get the response to work.
 		BufferedImage image = null;
 		image = ImageIO.read(new ByteArrayInputStream(imageBytes));
 
 		String text = "Captioning failed";
-		File toUpload = File.createTempFile("precaption", ".jpg");
+		final File toUpload = File.createTempFile("precaption", ".jpg");
 		try {
 			ImageIO.write(image, "jpg", toUpload);
 
 			System.out.println("Sending " + toUpload.getPath());
 
-			ModelPredictResponse captions = modelApi.predict(toUpload);
+			final ModelPredictResponse captions = modelApi.predict(toUpload);
 			text = captions.getPredictions().get(0).getCaption();
 		} finally {
 			Files.delete(toUpload.toPath());
 		}
 
-		Graphics g = image.getGraphics();
+		final Graphics g = image.getGraphics();
 
-		Font baseFont = new Font("Arial", Font.BOLD, 10);
-		int tenPtWidth = g.getFontMetrics(baseFont).stringWidth(text);
+		final Font baseFont = new Font("Arial", Font.BOLD, 10);
+		final int tenPtWidth = g.getFontMetrics(baseFont).stringWidth(text);
 
-		int fontHeight = 10 * image.getWidth() / tenPtWidth - 1;
+		final int fontHeight = 10 * image.getWidth() / tenPtWidth - 1;
 
-		Font font = new Font("Arial", Font.BOLD, fontHeight);
+		final Font font = new Font("Arial", Font.BOLD, fontHeight);
 		g.setFont(font);
 		g.setColor(Color.WHITE);
 
-		var fm = g.getFontMetrics();
-		int positionX = (image.getWidth() - fm.stringWidth(text)) / 2;
-		int positionY = image.getHeight() - fm.getHeight() / 2; // Put text half a line up from bottom.
+		final var fm = g.getFontMetrics();
+		final int positionX = (image.getWidth() - fm.stringWidth(text)) / 2;
+		final int positionY = image.getHeight() - fm.getHeight() / 2; // Put text half a line up from bottom.
 
 		g.drawString(text, positionX, positionY);
 
 		g.drawImage(image, 0, 0, null);
-		var bao = new ByteArrayOutputStream();
+		final var bao = new ByteArrayOutputStream();
 		ImageIO.write(image, "jpg", bao);
-		var ret = bao.toByteArray();
 
-		System.out.println("Writing image of " + ret.length + " bytes\n\n");
-		return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
+		// Fill out CloudEvents binary headers for response.
+		final var responseHeaders = new HttpHeaders();
+		responseHeaders.set("ce-type", RESPONSE_EVENT_TYPE);
+		responseHeaders.set("ce-source", RESPONSE_EVENT_SOURCE);
+		responseHeaders.set("ce-id", eventId);
+		responseHeaders.set("ce-specversion", "1.0");
+
+		return ResponseEntity.ok().headers(responseHeaders).contentType(MediaType.IMAGE_JPEG).body(bao.toByteArray());
 	}
 
 	@GetMapping("/hello")
-	public String hello(@RequestParam(value = "name", defaultValue = "World") String name) {
+	public String hello(@RequestParam(value = "name", defaultValue = "World") final String name) {
 		return String.format("Hello %s!", name);
 	}
 }

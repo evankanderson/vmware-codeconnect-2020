@@ -1,0 +1,15 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: captioner
+spec:
+  template:
+    metadata:
+      name: ''  # Reset to use auto-generated names
+    spec:
+      containers:
+      - env:
+        - name: CAPTION_SERVICE
+          value: http://max-image-captioner-generator:5000/
+        image: ekanderson/java-captioner
+      
