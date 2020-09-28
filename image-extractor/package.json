@@ -1,0 +1,16 @@
+{
+  "name": "tweet-image-extractor",
+  "version": "0.0.1",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cloudevents": "^3.2.0",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1"
+  },
+  "scripts": {
+    "start": "node extract.js"
+  },
+  "engines": {
+    "node": "12.11.0"
+  }
+}
