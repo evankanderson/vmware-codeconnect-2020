@@ -19,3 +19,12 @@ The components:
 
 - configs contains additional Knative object definitions (in particular, trigger
   definitions) to support the entire workflow.
+
+
+## Useful testing commands:
+
+- Captioner:
+  ```curl -v -H "Content-Type: image/jpg" --data-binary "@./some-image-you-found.jpg" $TARGET -o captioned.jpg```
+
+- Image-Extractor:
+  ```curl -vv -H 'ce-id: 1310437820780216321' -H 'ce-source: https://twitter.com/' -H 'ce-type: com.twitter.tweet' -H 'ce-specversion: 1.0' -H 'content-type: application/json' -d '@.\payload.json' $TARGET -o .\temp.jpg```
