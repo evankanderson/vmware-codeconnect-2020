@@ -1,0 +1,30 @@
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: extract-image
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: com.twitter.tweet
+      source: https://twitter.com/
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: tweet-extractor
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: caption-image
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: com.majordemo.twitter-image
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: captioner

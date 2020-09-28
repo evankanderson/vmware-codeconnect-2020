@@ -16,3 +16,6 @@ The components:
   CloudEvent from the https://github.com/vaikas/twitter event source, finds the
   first image in the tweet, fetches it, and returns a new event
   (`com.majordemo.twitter-image`) containing the image as binary data.
+
+- configs contains additional Knative object definitions (in particular, trigger
+  definitions) to support the entire workflow.
