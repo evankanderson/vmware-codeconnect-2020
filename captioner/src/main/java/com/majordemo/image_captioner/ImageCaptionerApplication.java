@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.UUID;
 
 import javax.imageio.ImageIO;
 
@@ -75,15 +76,16 @@ public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
 	}
 
 	@PostMapping(value = "/", produces = MediaType.IMAGE_JPEG_VALUE)
-	public ResponseEntity<byte[]> captionImage(@RequestHeader("ce-id") final String eventId,
+	public ResponseEntity<byte[]> captionImage(@RequestHeader(value = "ce-id", required = false) String eventId,
 			@RequestBody final byte[] imageBytes) throws IOException {
 		// We'd love to return ResponseEntity<BufferedImage>, but I can't figure out how
 		// to get the response to work.
-		BufferedImage image = null;
-		image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+		final BufferedImage input = ImageIO.read(new ByteArrayInputStream(imageBytes));
+		final BufferedImage image = new BufferedImage(input.getWidth(), input.getHeight(), BufferedImage.TYPE_INT_RGB);
+		image.createGraphics().drawImage(input, 0, 0, Color.BLACK, null);
 
 		String text = "Captioning failed";
-		final File toUpload = File.createTempFile("precaption", ".jpg");
+		final File toUpload = File.createTempFile("pre-caption-", ".jpg");
 		try {
 			ImageIO.write(image, "jpg", toUpload);
 
@@ -115,6 +117,10 @@ public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
 		g.drawImage(image, 0, 0, null);
 		final var bao = new ByteArrayOutputStream();
 		ImageIO.write(image, "jpg", bao);
+
+		if (eventId == null) {
+			eventId = UUID.randomUUID().toString();
+		}
 
 		// Fill out CloudEvents binary headers for response.
 		final var responseHeaders = new HttpHeaders();
