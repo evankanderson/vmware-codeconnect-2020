@@ -28,3 +28,19 @@ spec:
       apiVersion: serving.knative.dev/v1
       kind: Service
       name: captioner
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: send-tweet
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: com.majordemo.captioned-image
+      datacontenttype: image/jpeg
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: tweet-sender
