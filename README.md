@@ -2,6 +2,12 @@
 
 The talk: https://vmwarecodeconnect.github.io/CodeConnect2020/Evan/
 
+Slides for the talk are in [Slides.pdf](./Slides.pdf)
+
+[Also available on YouTube](https://youtu.be/1sMu_bmio2A)
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1sMu_bmio2A" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 The components:
 
 - Image-caption-generator is based on the
