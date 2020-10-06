@@ -67,11 +67,6 @@ public class ImageCaptionerApplication extends WebMvcConfigurationSupport {
 
 	@Bean
 	public ApiClient apiClient(final String serviceHost) {
-		/*
-		 * String serviceHost = System.getenv("CAPTION_SERVICE"); if (serviceHost ==
-		 * null || serviceHost == "") { serviceHost = "http://localhost:5000/"; //
-		 * Default for development }
-		 */
 		return new ApiClient().setBasePath(serviceHost);
 	}
 
