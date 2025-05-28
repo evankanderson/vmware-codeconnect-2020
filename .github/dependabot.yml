@@ -1,0 +1,31 @@
+version: 2
+updates:
+- package-ecosystem: "docker"
+  directories:
+  - /captioner/
+  
+  - /image-caption-generator/
+  schedule:
+    interval: "weekly"  # .schedule_interval
+  open-pull-requests-limit: 10
+
+- package-ecosystem: "maven"
+  directories:
+  - /captioner/
+  schedule:
+    interval: "weekly"  # .schedule_interval
+  open-pull-requests-limit: 10
+
+- package-ecosystem: "pip"
+  directories:
+  - /image-caption-generator/
+  schedule:
+    interval: "weekly"  # .schedule_interval
+  open-pull-requests-limit: 10
+
+- package-ecosystem: "npm"
+  directories:
+  - /image-extractor/
+  schedule:
+    interval: "weekly"  # .schedule_interval
+  open-pull-requests-limit: 10
