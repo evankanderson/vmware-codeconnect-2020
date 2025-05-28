@@ -12,7 +12,7 @@ RUN mvn package -DskipTests
 
 # Use AdoptOpenJDK for the final execute image.
 # This uses a 2-stage build so the final image only needs JRE, not JDK.
-FROM adoptopenjdk:11-jre-hotspot
+FROM adoptopenjdk:16-jre-hotspot
 
 COPY --from=builder /app/target/image_captioner*.jar /image_captioner.jar
 
