@@ -1,5 +1,5 @@
 # Official Maven slim image for builder:
-FROM maven:3.6-jdk-11-slim as builder
+FROM maven:3-jdk-9-slim as builder
 
 # Copy code to container image
 WORKDIR /app
